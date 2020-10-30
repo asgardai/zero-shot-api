@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zero-shot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zero-shot
+  template:
+    metadata:
+      labels:
+        app: zero-shot
+    spec:
+      containers:
+      - name: zero-shot
+        image: eu.gcr.io/asgardai-164316/zero-shot:0.1.1.test
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "8Gi"
+          limits:
+            memory: "8Gi"
+        command: ["gunicorn"]
+        args: ["-k", "uvicorn.workers.UvicornWorker", "-w", "1", "main:app", "-b", ":5000", "--timeout=700"]
+        readinessProbe:
+          httpGet:
+            path: /model-info
+            port: 5000
+          initialDelaySeconds: 600
+          periodSeconds: 30
+          timeoutSeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /model-info
+            port: 5000
+          initialDelaySeconds: 700
+          periodSeconds: 30
+          timeoutSeconds: 20
+      nodeSelector:
+        type: mlapi-node
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: cloud.google.com/gke-preemptible
+                    operator: Exists
+              weight: 100
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-shot
+  labels:
+    app: zero-shot
+spec:
+  ports:
+  - port: 5000
+    targetPort: 5000
+  selector:
+    app: zero-shot
