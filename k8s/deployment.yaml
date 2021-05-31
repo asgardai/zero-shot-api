@@ -14,23 +14,27 @@ spec:
     spec:
       containers:
       - name: zero-shot
-        image: eu.gcr.io/asgardai-164316/zero-shot:0.1.1.test
+        image: eu.gcr.io/asgardai-164316/zero-shot:0.1.2.test
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
         resources:
           requests:
-            memory: "8Gi"
-          limits:
-            memory: "8Gi"
+            memory: "5Gi"
+#          limits:
+#            memory: "6Gi"
         command: ["gunicorn"]
         args: ["-k", "uvicorn.workers.UvicornWorker", "-w", "1", "main:app", "-b", ":5000", "--timeout=700"]
+        env:
+          - name: TRF_MODEL_NAME
+             value: "valhalla/distilbart-mnli-12-9"
+            # value: "facebook/bart-large-mnli"
         readinessProbe:
           httpGet:
             path: /model-info
             port: 5000
-          initialDelaySeconds: 600
-          periodSeconds: 30
+          initialDelaySeconds: 60
+          periodSeconds: 10
           timeoutSeconds: 30
         livenessProbe:
           httpGet:
@@ -40,7 +44,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 20
       nodeSelector:
-        type: mlapi-node
+        type: trf-node
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
